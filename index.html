@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Supabase Inventory Manager (Light Premium)</title>
+  <title>Supabase Inventory Manager (Touch Friendly)</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
     body {
@@ -105,10 +105,13 @@
       padding:26px 4vw 20px 4vw;
       max-height:85vh;
       overflow-y:auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
     #modal-list {
-      margin-bottom:20px;
-      max-height:70vh;
+      margin-bottom:18px;
+      max-height:62vh;
       overflow-y:auto;
     }
     .modal-row {
@@ -136,13 +139,31 @@
     .modal-row .row-btn { padding:6px 13px; margin-right:6px; font-size:1em; background:linear-gradient(90deg,#4eadcc,#67e8f9); color:#fff; }
     .modal-row .row-btn:hover {background:linear-gradient(90deg,#67e8f9,#be70f5);}
     .modal-row .voice-btn { font-size:17px; padding:6px 9px;}
-    .close-btn { background: #ecf1f7; color: #375d7a; font-weight:700; float:right; border-radius:9px; margin-top:6px; padding:6px 18px; border:1.1px solid #bfd5f7;}
+    .close-btn {
+      display: block;
+      width: 100%;
+      background: #4eadcc;
+      color: #fff;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 16px 0;
+      margin: 18px auto 0 auto;
+      box-shadow: 0 1px 10px #c2fdf8;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: center;
+    }
+    .close-btn:hover {
+      background:#43ad97;
+    }
     #export-range {margin-left:18px; color:#4eadcc; font-size:15px; margin-top:4px; font-weight:600;}
     @media (max-width:560px) {
       .container { padding: 10px 2vw; }
       header, form#searchform { flex-direction:column; align-items:stretch; gap: 8px; }
       .modal-inner { max-width: 99vw; padding: 10px 2vw; }
       .modal-row { padding: 12px 4px;}
+      .close-btn { font-size: 1.15rem; padding: 25px 0;}
     }
   </style>
 </head>
@@ -166,7 +187,7 @@
       <div class="modal-inner">
         <h3 style="margin-top:0;font-weight:600;letter-spacing:0.5px;">Search Results</h3>
         <div id="modal-list"></div>
-        <button class="close-btn" onclick="closeModal()" style="margin-top:11px;">Close</button>
+        <button class="close-btn" onclick="closeModal()">Close</button>
       </div>
     </div>
   </div>
