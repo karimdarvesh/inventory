@@ -2,135 +2,153 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Supabase Inventory Manager (Table View)</title>
+  <title>Supabase Inventory Manager</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f7fafd;
-      color: #21243a;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 32px auto;
-      padding: 28px 2vw 28px 2vw;
-      background: #fff;
-      border-radius: 19px;
-      box-shadow: 0 6px 36px #e4ecfc99, 0 1px 0 #f5f7fb;
-      border: 1.5px solid #e2e8f7;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 18px 10px;
-      margin-bottom: 17px;
-    }
-    .app-title {
-      font-size: 2.11rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      flex: 1;
-      min-width: 210px;
-      color: #224198;
-      text-shadow: 0 2px 12px #e2eaef73;
-    }
-    .export-btn {
-      background: linear-gradient(90deg,#79b3f7,#bfe9ff);
-      color:#184e77;
-      font-weight:700;
-      padding:10px 18px;
-      border-radius:9px;
-      border:none;
-      margin-left:8px;
-      font-size: 1rem;
-      transition:background .18s;
-    }
-    .export-btn:hover { background: linear-gradient(90deg,#67d8c2,#e0c3fc); color:#185353; }
-    .table-filters-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 13px;
-      flex-wrap: wrap;
-    }
-    .table-filters label {
-      font-weight: 600;
-      margin-right: 7px;
-    }
-    #search { min-width:120px; font-size:1rem; border-radius:7px; border: 1.2px solid #cbd5ee; padding:8px 14px;}
-    #username { min-width:90px; max-width:160px; padding:8px; border-radius:7px; border:1.2px solid #cbd5ee;}
-    .diff-filters {display:flex; gap:6px;}
-    .diff-filters button {
-      padding: 7px 16px;
-      font-size:1em;
-      border-radius: 8px;
-      border: none;
-      font-weight: 600;
-      background: #e9eefb;
-      color: #284c79;
-      cursor:pointer;
-      transition: box-shadow .16s, background .17s;
-    }
-    .diff-filters .active { background: #4eadcc; color: #fff; }
-    .diff-filters .diff-lt0 { background: #ffb3b3; color:#971d1d;}
-    .diff-filters .diff-gt0 { background: #d3fcd3; color:#16642a;}
-    .diff-filters .diff-eq0 { background: #faf089; color: #9d7500;}
-    .inv-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow:0 1px 11px #c3e7fc25;
-    }
-    .inv-table th,
-    .inv-table td {
-      padding: 8px 6px;
-      text-align: center;
-      border-bottom: 1px solid #ecf4fc;
-      font-size: 1.02em;
-    }
-    .inv-table th { background: #f6fafd; font-weight: 700;}
-    .inv-table tr:last-child td { border-bottom: none;}
-    .bulk-select { transform: scale(1.18); margin:0 4px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7fafd; color: #21243a; margin:0; }
+    .container { max-width: 900px; margin: 38px auto; padding: 22px 2vw; background:#fff; border-radius:15px; box-shadow:0 6px 40px #e4ecfc99;}
+    .app-title { font-size: 2.17rem; font-weight: 700; color: #224198;}
+    .export-btn { background: #1ea7b5; color:#fff; font-weight:700; padding:9px 20px; border-radius:10px; border:none; font-size:1.03rem; float:right; margin-left:12px;}
+    .export-btn:hover { background: #15777f;}
+    .action-btn { background:#3275f5; color: #fff; font-weight: 700; border-radius: 11px; padding: 12px 20px; border: none; margin: 10px 0 18px 0; font-size: 1.06rem; box-shadow:0 1px 8px #b7e8ff46;}
+    .action-btn:hover { background:#1c4ca0;}
+    .inv-table {width:100%;border-collapse:collapse;margin-top:16px;}
+    th, td {padding:8px 6px;text-align:center;border-bottom:1px solid #e6f3fb;}
+    th {background:#f6fafd; font-weight:700; letter-spacing:.2px;}
+    tr:last-child td {border-bottom: none;}
     .qty-badge { background:#b9e7fa; color:#22577e; padding:2px 10px; border-radius:7px; font-weight:700;}
     .physical-badge { background:#d7fce6; color:#206648; padding:2px 10px; border-radius:7px; font-weight:700;}
     .diff-badge { background:#ffe9b4; color:#b98500; padding:2px 10px; border-radius:7px; font-weight:700;}
     .diff-badge.negative { background:#ff6f6f; color:#fff; }
     .diff-badge.positive { background:#17c47d; color:#fff; }
-    .row-btn { padding:6px 12px; border-radius:7px; border:none; font-weight:600; background:linear-gradient(90deg,#4eadcc,#67e8f9); color:#fff; transition:background .14s;}
-    .row-btn:hover {background:linear-gradient(90deg,#67e8f9,#be70f5);}
+    /* Modal */
+    .modal { display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(13,16,40,0.13); z-index:99;}
+    .modal-inner { max-width:620px; margin:60px auto; background: #fff; border-radius:19px; box-shadow:0 7px 36px #b1c0d821; padding:22px 2vw 22px 2vw; max-height:89vh; overflow-y:auto;}
+    .close-btn { display: block; width: 100%; background: #4eadcc; color: #fff; font-weight: 700; border-radius: 12px; padding: 15px 0; margin: 20px auto 0 auto; box-shadow: 0 1px 10px #c2fdf8; border: none; font-size: 1rem; cursor: pointer; text-align: center;}
+    .close-btn:hover { background:#15777f;}
+    .modal-row {
+      background: #f4f9ff;
+      border-radius:13px;
+      box-shadow:0 2px 11px #accedc18;
+      margin-bottom:18px;
+      padding: 18px 9px;
+      border-left:5px solid #86cafe;
+      border-right:3px solid #c2f7fa;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .modal-row-content { flex: 1; }
+    .qty-badge, .physical-badge, .diff-badge {
+      display:inline-block;
+      margin-right:10px;
+      font-size: 97%;
+      letter-spacing:.4px;
+      margin-bottom:6px;
+    }
+    .qty-badge { background:#b9e7fa; color:#22577e; padding:3px 16px; border-radius:8px; font-weight:700;}
+    .physical-badge { background:#d7fce6; color:#206648; padding:3px 16px; border-radius:8px; font-weight:700;}
+    .diff-badge { background:#ffe9b4; color:#b98500; padding:3px 16px; border-radius:8px; font-weight:700;}
+    .diff-badge.negative { background:#ff6f6f; color:#fff; }
+    .diff-badge.positive { background:#17c47d; color:#fff; }
+    .modal-row label { font-size:15px; margin-right:4px;}
+    .modal-row input.qty-inp { width:88px; font-size:15px; border-radius:7px; padding:6px 6px; border:1.2px solid #d0def5; background:#fcfeff;}
+    .modal-row .row-btn { padding:6px 13px; margin-right:6px; font-size:1em; background:linear-gradient(90deg,#4eadcc,#67e8f9); color:#fff; }
+    .modal-row .row-btn:hover {background:linear-gradient(90deg,#67e8f9,#be70f5);}
+    .modal-row .voice-btn { font-size:17px; padding:6px 9px;}
+    .bulk-select { margin-top: 6px; margin-right: 3px; transform: scale(1.18); }
     .bulk-update-btn {
-      background: #1ea7b5;
-      color: #fff;
-      padding: 14px 0;
-      margin: 18px auto 3px auto;
-      font-size:1.11rem;
-      font-weight:700;
-      border-radius: 12px;
-      border: none;
-      width: 100%;
-      cursor: pointer;
-      box-shadow: 0 1px 10px #c2fdf8;
-      text-align: center;
       display: block;
-      transition: background .14s;
+      width: 100%;
+      background: #4eadcc;
+      color: #fff;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 16px 0;
+      margin: 18px auto 0 auto;
+      box-shadow: 0 1px 10px #c2fdf8;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: center;
     }
-    .bulk-update-btn:hover {
-      background:#43ad97;
-    }
-    .success-msg { color:#22b87e; font-weight:bold; font-size:1.05em;}
-    @media (max-width:900px) {
-      .inv-table th, .inv-table td { font-size: .97em; padding:6px 2px;}
-    }
+    .bulk-update-btn:hover{background:#43ad97;}
     @media (max-width:600px) {
-      .container { padding: 10px 1vw;}
-      .inv-table th,.inv-table td { font-size:.92em;}
-      .table-filters-row { flex-direction:column; gap:7px;}
+      .container { padding: 7px 0vw;}
+      th,td { font-size:.92em;}
+      .modal-inner {padding:8px 1vw;}
+      .modal-row { padding: 12px 4px;}
+      .close-btn, .bulk-update-btn { font-size: 1.15rem; padding: 22px 0;}
+      .searchbar-row { flex-wrap: wrap; gap: 7px;}
+      .searchbox { min-width:90px; }
+      .namebox, .search-label { min-width:80px; }
+    }
+    /* Modern Search Bar Styles */
+    .searchbar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: #f4f7fe;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px #d4e6fa26;
+      margin-bottom: 4px;
+      transition: box-shadow 0.2s;
+    }
+    .search-icon {
+      font-size: 1.45em;
+      margin-right: -4px;
+      color: #4685c3;
+    }
+    .searchbox {
+      flex: 2;
+      padding: 9px 38px 9px 32px;
+      font-size: 1.11em;
+      border: 1.5px solid #c3e1fa;
+      border-radius: 8px;
+      background: #fcfdff;
+      transition: border-color 0.2s;
+      box-shadow: 0 1px 4px #d7eaf866;
+    }
+    .searchbox:focus {
+      border-color: #2684ff;
+      outline: none;
+    }
+    .search-btn, .voice-btn.modern-voice {
+      background:linear-gradient(90deg,#3275f5 60%,#67e8f9 100%);
+      color:#fff;
+      border:none;
+      font-size:1.1em;
+      font-weight:600;
+      border-radius:9px;
+      padding:9px 23px;
+      margin-left:2px;
+      cursor:pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 10px #c2fdf8;
+    }
+    .search-btn:hover, .voice-btn.modern-voice:hover {
+      background:linear-gradient(90deg,#67e8f9 20%,#152abb 98%);
+      box-shadow: 0 2px 15px #93d8fa52;
+    }
+    .voice-btn.modern-voice {
+      padding:9px 11px;
+      font-size: 1.25em;
+    }
+    .namebox {
+      padding: 9px 13px;
+      font-size: 1em;
+      border: 1.5px solid #e1eee9;
+      border-radius: 8px;
+      background: #fcfdff;
+      min-width:140px;
+      max-width:180px;
+      margin-left:7px;
+    }
+    .search-label {
+      font-size: 1em;
+      margin-left:9px;
+      color: #39658f;
     }
   </style>
 </head>
@@ -140,162 +158,185 @@
       <span class="app-title">Supabase Inventory Manager</span>
       <button class="export-btn" onclick="exportToCSV()">Export Sheet as CSV</button>
     </header>
-    <div class="table-filters-row">
-      <div>
-        <label>Search: <input id="search" autocomplete="off" placeholder="Article/name/part"></label>
-        <label style="margin-left:14px;">Your Name: <input id="username" autocomplete="off" placeholder="Enter once"></label>
+    <!-- Modernized search bar at the top -->
+    <form id="searchform" onsubmit="searchInventory(); return false;" style="margin-top:18px; margin-bottom:18px;">
+      <div class="searchbar-row">
+        <span class="search-icon">🔍</span>
+        <input id="search" class="searchbox" placeholder="Search article or part..." autocomplete="off">
+        <button type="submit" class="search-btn">Search</button>
+        <button type="button" class="voice-btn modern-voice" onclick="voiceSearch()" title="Voice Search"><span>🎤</span></button>
+        <label for="username" class="search-label">Your Name:</label>
+        <input id="username" class="namebox" type="text" autocomplete="off" placeholder="Enter once">
       </div>
-      <div class="diff-filters" id="diff-filter-btns"></div>
-      <button class="bulk-update-btn" onclick="bulkConfirmSelected()">Confirm/Update Selected</button>
-    </div>
-    <div id="success-message" class="success-msg"></div>
-    <table class="inv-table" id="inventory-table">
+    </form>
+    <!-- LIVE dashboard showing only items needing action -->
+    <h4 style="margin-top:10px;">Items With System ≠ Physical (Action Needed)</h4>
+    <table class="inv-table">
       <thead>
         <tr>
-          <th></th>
           <th>Article Name</th>
           <th>System</th>
           <th>Physical</th>
           <th>Difference</th>
-          <th>Checked By</th>
-          <th>Checked At</th>
-          <th style="min-width:110px;">Actions</th>
         </tr>
       </thead>
-      <tbody id="inventory-tbody"></tbody>
+      <tbody id="dashboard-tbody"></tbody>
     </table>
+    <!-- Modal for search results -->
+    <div class="modal" id="modal-results">
+      <div class="modal-inner">
+        <h3 style="margin-top:0;font-weight:600;letter-spacing:0.5px;">Search Results</h3>
+        <div id="modal-list"></div>
+        <button class="bulk-update-btn" onclick="bulkConfirmSelected()">Confirm/Update Selected</button>
+        <button class="close-btn" onclick="closeModal()">Close</button>
+      </div>
+    </div>
   </div>
   <script>
     const SUPABASE_URL = 'https://yyzakmmxeqxkjbbzjoua.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5emFrbW14ZXF4a2piYnpqb3VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwODg5NjYsImV4cCI6MjA3ODY2NDk2Nn0.9zs9A7F955gRsSfN-A8hTziMbQ6WEY0YwtVByq12zRQ';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let rows = [];
-    let currentDiffFilter = 'all';
-    let searchStr = "";
-    let successTimeout = null;
-
+    let currentRows = [];
     document.getElementById('username').value = localStorage.getItem('inventory_user_name') || '';
     document.getElementById('username').onchange = function() {
       localStorage.setItem('inventory_user_name', this.value.trim());
     }
-    document.getElementById('search').addEventListener('input', e => {
-      searchStr = e.target.value.trim();
-      renderTable();
-    });
-
+    function getName() {
+      const box = document.getElementById('username');
+      let v = box.value.trim();
+      if (!v) v = localStorage.getItem('inventory_user_name') || "";
+      box.value = v;
+      return v;
+    }
     function extractNumber(val) {
       if (val === undefined || val === null) return null;
       let s = String(val);
       let match = s.match(/-?\d+(\.\d+)?/);
       return match ? Number(match[0]) : null;
     }
-    function getDifference(qty, physical) {
-      let qtyNum = extractNumber(qty);
-      let physicalNum = extractNumber(physical);
-      if (qtyNum !== null && physicalNum !== null) {
-        return physicalNum - qtyNum;
-      }
-      return null;
-    }
-    function renderDiffFilters() {
-      const btns = [
-        { key:'all', label:'All', class:'' },
-        { key:'lt0', label:'Difference < 0', class:'diff-lt0' },
-        { key:'eq0', label:'Difference = 0', class:'diff-eq0' },
-        { key:'gt0', label:'Difference > 0', class:'diff-gt0' }
-      ];
-      const container = document.getElementById('diff-filter-btns');
-      container.innerHTML = btns.map(b=>
-        `<button onclick="setDiffFilter('${b.key}')" class="${b.class} ${(currentDiffFilter===b.key?'active':'')}">${b.label}</button>`
-      ).join('');
-    }
-    function setDiffFilter(val) {
-      currentDiffFilter = val;
-      renderTable();
-    }
-    function renderTable() {
-      renderDiffFilters();
-      const tbody = document.getElementById('inventory-tbody');
-      let filtered = rows.slice();
-      if (searchStr.length) {
-        const lowSearch = searchStr.toLowerCase();
-        filtered = filtered.filter(r =>
-          (r.article_name||"").toLowerCase().includes(lowSearch)
-        );
-      }
-      filtered = filtered.filter(item=>{
-        let qtyNum = extractNumber(item.qty);
-        let physicalNum = extractNumber(item.physical);
-        if (qtyNum === null || physicalNum === null) return currentDiffFilter==='all';
-        let diff = physicalNum - qtyNum;
-        if (currentDiffFilter==='lt0') return diff < 0;
-        if (currentDiffFilter==='gt0') return diff > 0;
-        if (currentDiffFilter==='eq0') return diff === 0;
-        return true;
+    async function renderDashboard() {
+      const { data, error } = await supabase.from('inventory').select('*').order('id');
+      const tbody = document.getElementById('dashboard-tbody');
+      if (error) {tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;}
+      const diffItems = (data||[]).filter(item=>{
+        let qty = extractNumber(item.qty), phys = extractNumber(item.physical);
+        return qty!==null && phys!==null && (phys-qty)!==0;
       });
-      if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8">No matches found.</td></tr>'; return; }
-      tbody.innerHTML = filtered.map(item=>{
-        let qtyDisp = (item.qty===undefined || item.qty===null || item.qty==="") ? '-' : item.qty;
-        let physDisp = (item.physical===undefined || item.physical===null || item.physical==="") ? '-' : item.physical;
-        let diffVal = getDifference(item.qty, item.physical);
-        let diffStr = (diffVal!==null) ? diffVal.toString() : '-';
+      if (!diffItems.length) {
+        tbody.innerHTML = '<tr><td colspan="4">All system and physical match!</td></tr>'; return;
+      }
+      tbody.innerHTML = diffItems.map(item=>{
+        let qtyDisp = (item.qty===undefined||item.qty===null||item.qty==="") ? '-' : item.qty;
+        let physDisp = (item.physical===undefined||item.physical===null||item.physical==="") ? '-' : item.physical;
+        let diffVal = extractNumber(item.physical) - extractNumber(item.qty);
+        let diffStr = (diffVal!==null && !isNaN(diffVal)) ? diffVal : '-';
         let diffClass = "";
         if (diffVal<0) diffClass = "negative";
         else if (diffVal>0) diffClass = "positive";
-        else if (diffVal===0) diffClass = "";
-        return `
-          <tr id="row-${item.id}">
-            <td><input type="checkbox" class="bulk-select" id="bulk-${item.id}"></td>
+        return `<tr>
             <td>${item.article_name||""}</td>
             <td><span class="qty-badge">${qtyDisp}</span></td>
-            <td>
-              <span class="physical-badge">${physDisp}</span>
-              <input class="qty-inp" id="qty-inp-${item.id}" style="width:70px;margin-left:5px;" placeholder="Update...">
-            </td>
+            <td><span class="physical-badge">${physDisp}</span></td>
             <td><span class="diff-badge ${diffClass}">${diffStr}</span></td>
-            <td>${item.checked_by||"-"}</td>
-            <td>${item.checked_at||"-"}</td>
-            <td>
-              <button class="row-btn" onclick="markOK(${item.id},'${qtyDisp}')">OK</button>
-              <button class="row-btn" onclick="updateQty(${item.id})" style="background:#3275f5;margin-left:5px;">Update</button>
-            </td>
-          </tr>
-        `;
+          </tr>`;
       }).join('');
     }
-    async function fetchRows() {
-      const { data, error } = await supabase.from('inventory').select('*').order('id');
-      if (error) return alert("Error loading inventory: " + error.message);
-      rows = data || [];
-      renderTable();
+    function closeModal() { document.getElementById('modal-results').style.display = 'none'; }
+    function voiceSearch() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        alert('Voice input not supported!');
+        return;
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recog = new SR();
+      recog.lang = 'en-US';
+      recog.interimResults = false; recog.maxAlternatives=1;
+      recog.onresult = async evt => {
+        const t = String(evt.results[0][0].transcript||'').trim();
+        document.getElementById('search').value = t;
+        await searchInventory();
+      };
+      recog.onerror = e => { alert('Voice error: '+e.error); };
+      recog.start();
     }
-    async function markOK(id, qtyValue) {
-      const name = document.getElementById('username').value.trim() || localStorage.getItem('inventory_user_name') || '';
-      if (!name) return alert('Enter your name first');
+    async function searchInventory() {
+      const q = document.getElementById('search').value.trim();
+      let query = supabase.from('inventory').select('*');
+      if (q.length) query = query.ilike('article_name', `%${q}%`);
+      const { data: items, error } = await query.order('id');
+      if (error) return alert(error.message);
+      currentRows = items || [];
+      showModal(currentRows);
+    }
+    function showModal(items) {
+      const modal = document.getElementById('modal-results');
+      const mlist = document.getElementById('modal-list');
+      if (!items.length) { mlist.innerHTML = '<b>No matches found.</b>'; modal.style.display = 'block'; return; }
+      mlist.innerHTML = items.map((item,i)=>{
+        let qtyDisplay = (item.qty === undefined || item.qty === null || item.qty === "" || item.qty === "null") ? '-' : item.qty;
+        let physicalDisplay = (item.physical === undefined || item.physical === null || item.physical === "" || item.physical === "null") ? '-' : item.physical;
+        let qtyNum = extractNumber(item.qty);
+        let physicalNum = extractNumber(item.physical);
+        let diffStr = '-';
+        let diffClass = "";
+        if (qtyNum !== null && physicalNum !== null) {
+          let diff = (physicalNum - qtyNum);
+          diffStr = diff.toString();
+          if (diff<0) diffClass = "negative";
+          else if (diff>0) diffClass = "positive";
+        }
+        return `
+        <div class="modal-row" id="modal-row-${item.id}">
+          <input type="checkbox" class="bulk-select" id="bulk-${item.id}">
+          <div class="modal-row-content">
+            <b style="font-size:1.05em;">${item.article_name}</b><br>
+            <span class="qty-badge">System: ${qtyDisplay}</span>
+            <span class="physical-badge">Physical: ${physicalDisplay}</span>
+            <span class="diff-badge ${diffClass}">Difference: ${diffStr}</span>
+            <div style="margin-top:10px;">
+              <button class="row-btn" onclick="markOK(${item.id}, '${qtyDisplay}', ${i})">OK</button>
+              <label>Or enter:</label>
+              <input class="qty-inp" id="qty-inp-${item.id}" placeholder="Physical qty">
+              <button class="voice-btn" onclick="voiceQty(${item.id})" title="Voice input">🎤</button>
+              <button class="row-btn" onclick="updateQty(${item.id}, ${i})">Update</button>
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('');
+      modal.style.display = 'block';
+    }
+    async function markOK(id, qtyValue, idx) {
+      const name = getName();
+      if (!name) { alert('Enter your name first'); return; }
       const checkedAt = new Date().toISOString();
-      const { error } = await supabase.from('inventory')
-        .update({
-          physical: qtyValue,
-          difference: 0,
-          checked_by: name,
-          checked_at: checkedAt
+      const { error: updateErr } = await supabase.from('inventory')
+        .update({ 
+          physical: qtyValue, 
+          difference: 0, 
+          checked_by: name, 
+          checked_at: checkedAt 
         })
         .eq('id', id);
-      if (error) return alert("Failed: "+error.message);
-      showSuccess("OK updated.");
-      fetchRows();
+      if (updateErr) {
+        alert('Failed to update: ' + updateErr.message);
+        return;
+      }
+      markDoneRow(id, `Physical set to ${qtyValue}, Difference: 0`);
+      setTimeout(() => { closeModal(); renderDashboard(); }, 700);
     }
-    async function updateQty(id) {
-      const name = document.getElementById('username').value.trim() || localStorage.getItem('inventory_user_name') || '';
-      if (!name) return alert('Enter your name first');
+    async function updateQty(id, idx) {
+      const name = getName();
+      if (!name) { alert('Enter your name first'); return; }
       const checkedAt = new Date().toISOString();
       const val = document.getElementById('qty-inp-'+id).value.trim();
-      if (!val || isNaN(Number(val))) return alert('Enter physical qty (number)');
-      const row = rows.find(x=>x.id===id);
-      let sysQtyNum = extractNumber(row && row.qty);
-      let diff = Number(val) - (sysQtyNum===null?0:sysQtyNum);
-      const { error } = await supabase.from('inventory')
+      if (!val || isNaN(Number(val))) { alert('Enter physical qty (number)'); return; }
+      const { data, error } = await supabase.from('inventory').select('qty').eq('id', id);
+      let sysQtyRaw = data && data.length ? data[0].qty : 0;
+      let sysQty = extractNumber(sysQtyRaw);
+      let diff = Number(val) - (sysQty === null ? 0 : sysQty);
+      const { error: updateErr } = await supabase.from('inventory')
         .update({
           physical: val,
           difference: diff,
@@ -303,24 +344,27 @@
           checked_at: checkedAt
         })
         .eq('id', id);
-      if (error) return alert("Failed: "+error.message);
-      showSuccess("Updated physical qty.");
-      fetchRows();
+      if (updateErr) {
+        alert('Failed to update: ' + updateErr.message);
+        return;
+      }
+      markDoneRow(id, `Physical: ${val}, Difference: ${diff}`);
+      setTimeout(() => { closeModal(); renderDashboard(); }, 700);
     }
     async function bulkConfirmSelected() {
       const checkedBoxes = Array.from(document.querySelectorAll('.bulk-select:checked'));
       const checkedIds = checkedBoxes.map(cb => cb.id.replace('bulk-', ''));
-      const name = document.getElementById('username').value.trim() || localStorage.getItem('inventory_user_name') || '';
+      const name = getName();
       if (!checkedIds.length) return alert('Select at least one item!');
-      if (!name) return alert('Enter your name first');
       const checkedAt = new Date().toISOString();
       const updates = checkedIds.map(id => {
         const inputBox = document.getElementById('qty-inp-' + id);
         let val = inputBox && inputBox.value.trim() ? inputBox.value.trim() : null;
-        let row = rows.find(r => String(r.id) === id);
-        let sysQtyNum = extractNumber(row ? row.qty : null);
-        let newPhysical = val || row.qty;
-        let newDiff = val ? Number(val) - (sysQtyNum===null?0:sysQtyNum) : 0;
+        let row = currentRows.find(r => String(r.id) === id);
+        let sysQtyRaw = row ? row.qty : null;
+        let sysQty = extractNumber(sysQtyRaw);
+        let newPhysical = val || sysQtyRaw;
+        let newDiff = val ? Number(val) - (sysQty === null ? 0 : sysQty) : 0;
         return supabase.from('inventory')
           .update({
             physical: newPhysical,
@@ -331,14 +375,28 @@
           .eq('id', id);
       });
       await Promise.all(updates);
-      showSuccess("Bulk update done!");
-      fetchRows();
+      closeModal(); renderDashboard();
     }
-    function showSuccess(msg) {
-      const el = document.getElementById('success-message');
-      el.textContent = msg;
-      if (successTimeout) clearTimeout(successTimeout);
-      successTimeout = setTimeout(()=>el.textContent="", 2000);
+    function voiceQty(id) {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        alert('Voice input not supported!');
+        return;
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recog = new SR();
+      recog.lang = 'en-US';
+      recog.interimResults = false; recog.maxAlternatives=1;
+      recog.onresult = evt => {
+        const t = String(evt.results[0][0].transcript||'').trim();
+        document.getElementById('qty-inp-'+id).value = t;
+      };
+      recog.onerror = e => { alert('Voice error: '+e.error); };
+      recog.start();
+    }
+    function markDoneRow(id, msg) {
+      const row = document.getElementById('modal-row-'+id);
+      if (row) row.innerHTML += `<div style="color:#43ad97;font-weight:bold;margin-top:7px;">${msg}</div>`;
+      setTimeout(()=>{ if(row) row.style.opacity=0.5; }, 700);
     }
     async function exportToCSV() {
       const { data: rows, error } = await supabase.from('inventory').select('*').order('id');
@@ -359,13 +417,11 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
-
     supabase
       .channel('public:inventory')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, payload=>{fetchRows();})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, payload=>{ renderDashboard(); })
       .subscribe();
-
-    fetchRows();
+    renderDashboard();
   </script>
 </body>
 </html>
