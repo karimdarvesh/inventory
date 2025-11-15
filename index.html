@@ -70,7 +70,7 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5emFrbW14ZXF4a2piYnpqb3VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwODg5NjYsImV4cCI6MjA3ODY2NDk2Nn0.9zs9A7F955gRsSfN-A8hTziMbQ6WEY0YwtVByq12zRQ';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentRows = []; // Store filtered or all rows in last search
+    let currentRows = [];
 
     document.getElementById('username').value = localStorage.getItem('inventory_user_name') || '';
     document.getElementById('username').onchange = function() {
@@ -156,7 +156,7 @@
       const name = getName();
       if (!name) { alert('Enter your name first'); return; }
       const checkedAt = new Date().toISOString();
-      await supabase.from('inventory')
+      const { error: updateErr } = await supabase.from('inventory')
         .update({ 
           physical: qtyValue, 
           difference: 0, 
@@ -164,8 +164,12 @@
           checked_at: checkedAt 
         })
         .eq('id', id);
+      if (updateErr) {
+        alert('Failed to update: ' + updateErr.message);
+        return;
+      }
       markDoneRow(id, `Physical set to ${qtyValue}, Difference: 0`);
-      setTimeout(() => { closeModal(); searchInventory(); }, 700);
+      setTimeout(() => { closeModal(); }, 700); // <-- Only close modal, no auto search
     }
     async function updateQty(id, idx) {
       const name = getName();
@@ -177,16 +181,20 @@
       let sysQtyRaw = data && data.length ? data[0].qty : 0;
       let sysQty = (!sysQtyRaw || isNaN(Number(sysQtyRaw))) ? 0 : Number(sysQtyRaw);
       let diff = Number(val) - sysQty;
-      await supabase.from('inventory')
-        .update({ 
-          physical: val, 
-          difference: diff, 
-          checked_by: name, 
-          checked_at: checkedAt 
+      const { error: updateErr } = await supabase.from('inventory')
+        .update({
+          physical: val,
+          difference: diff,
+          checked_by: name,
+          checked_at: checkedAt
         })
         .eq('id', id);
+      if (updateErr) {
+        alert('Failed to update: ' + updateErr.message);
+        return;
+      }
       markDoneRow(id, `Physical: ${val}, Difference: ${diff}`);
-      setTimeout(() => { closeModal(); searchInventory(); }, 700);
+      setTimeout(() => { closeModal(); }, 700); // <-- Only close modal, no auto search
     }
     function voiceQty(id) {
       if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -241,7 +249,7 @@
         'postgres_changes',
         { event: '*', schema: 'public', table: 'inventory' },
         payload => {
-          searchInventory();
+          // Data is reloaded if changes occur in inventory table
         }
       )
       .subscribe();
