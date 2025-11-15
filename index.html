@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Supabase Inventory Manager (Premium Light)</title>
+  <title>Supabase Inventory Manager (Light Premium)</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
     body {
@@ -216,26 +216,34 @@
       recog.onerror = e => { alert('Voice error: '+e.error); };
       recog.start();
     }
+    // Number extractor: picks first number from a value ("123 PC" -> 123)
+    function extractNumber(val) {
+      if (val === undefined || val === null) return null;
+      let s = String(val);
+      let match = s.match(/-?\d+(\.\d+)?/);
+      return match ? Number(match[0]) : null;
+    }
     function showModal(items) {
       const modal = document.getElementById('modal-results');
       const mlist = document.getElementById('modal-list');
       if (!items.length) { mlist.innerHTML = '<b>No matches found.</b>'; modal.style.display = 'block'; return; }
       mlist.innerHTML = items.map((item,i)=>{
-        let qtyRaw = item.qty, physicalRaw = item.physical;
-        let qtyNum = (!qtyRaw || isNaN(Number(qtyRaw))) ? 0 : Number(qtyRaw);
-        let physicalNum = (!physicalRaw || isNaN(Number(physicalRaw))) ? 0 : Number(physicalRaw);
+        let qtyDisplay = (item.qty === undefined || item.qty === null || item.qty === "" || item.qty === "null") ? '-' : item.qty;
+        let physicalDisplay = (item.physical === undefined || item.physical === null || item.physical === "" || item.physical === "null") ? '-' : item.physical;
+        let qtyNum = extractNumber(item.qty);
+        let physicalNum = extractNumber(item.physical);
         let diffStr = '-';
-        if (qtyRaw !== undefined && qtyRaw !== '' && physicalRaw !== undefined && physicalRaw !== '' && !isNaN(qtyNum) && !isNaN(physicalNum)) {
+        if (qtyNum !== null && physicalNum !== null) {
           diffStr = (physicalNum - qtyNum).toString();
         }
         return `
         <div class="modal-row" id="modal-row-${item.id}">
           <b style="font-size:1.05em;">${item.article_name}</b><br>
-          <span class="qty-badge">System: ${qtyRaw === undefined || qtyRaw === "" ? '-' : qtyRaw}</span>
-          <span class="physical-badge">Physical: ${physicalRaw === undefined || physicalRaw === "" ? '-' : physicalRaw}</span>
+          <span class="qty-badge">System: ${qtyDisplay}</span>
+          <span class="physical-badge">Physical: ${physicalDisplay}</span>
           <span class="diff-badge">Difference: ${diffStr}</span>
           <div style="margin-top:10px;">
-            <button class="row-btn" onclick="markOK(${item.id}, '${qtyRaw}', ${i})">OK</button>
+            <button class="row-btn" onclick="markOK(${item.id}, '${qtyDisplay}', ${i})">OK</button>
             <label>Or enter:</label>
             <input class="qty-inp" id="qty-inp-${item.id}" placeholder="Physical qty">
             <button class="voice-btn" onclick="voiceQty(${item.id})" title="Voice input">🎤</button>
@@ -273,8 +281,8 @@
       if (!val || isNaN(Number(val))) { alert('Enter physical qty (number)'); return; }
       const { data, error } = await supabase.from('inventory').select('qty').eq('id', id);
       let sysQtyRaw = data && data.length ? data[0].qty : 0;
-      let sysQty = (!sysQtyRaw || isNaN(Number(sysQtyRaw))) ? 0 : Number(sysQtyRaw);
-      let diff = Number(val) - sysQty;
+      let sysQty = extractNumber(sysQtyRaw);
+      let diff = Number(val) - (sysQty === null ? 0 : sysQty);
       const { error: updateErr } = await supabase.from('inventory')
         .update({
           physical: val,
@@ -312,19 +320,16 @@
       setTimeout(()=>{ if(row) row.style.opacity=0.5; }, 700);
     }
 
-    // Export all rows (full table), always includes conditional-formatting note for Excel/Sheets
+    // Export all rows (not filtered), difference = Excel formula as always
     async function exportToCSV() {
-      // Always export full inventory, not filtered
       const { data: rows, error } = await supabase.from('inventory').select('*').order('id');
       if (error || !rows || !rows.length) return alert("No data to export!");
-      // Excel: cols A-G
       const header = ["id","article_name","qty","physical","difference","checked_by","checked_at"];
-      const comment = ['"NOTE: To enable colored Difference column, select the Difference cells (col E), then use Excel/Sheets Conditional Formatting: format red (white text) if below 0, green (white text) if above 0."','','','','','',''];
-      const csvRows = [header, comment];
+      const csvRows = [header];
       for (let i=0; i<rows.length; ++i) {
         const r = rows[i];
-        // Excel formula for difference (columns C and D)
-        const diffFormula = `=D${i+3}-C${i+3}`;
+        // Excel formula for difference (columns C and D; 1-based plus header)
+        const diffFormula = `=D${i+2}-C${i+2}`;
         csvRows.push([r.id, r.article_name, r.qty, r.physical, diffFormula, r.checked_by, r.checked_at].map(v => `"${String(v??'').replace(/"/g,'""')}"`));
       }
       let csv = csvRows.map(r => r.join(',')).join('\n');
@@ -337,17 +342,11 @@
       URL.revokeObjectURL(url);
     }
 
-    // Real-time sync (optional: you can show UI notice or reload table if want)
     supabase
       .channel('public:inventory')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory' },
-        payload => {}
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, payload=>{})
       .subscribe();
 
-    // Load full row count
     (async function(){
       const {data} = await supabase.from('inventory').select('*');
       totalInventoryRows = data ? data.length : 0;
