@@ -263,36 +263,24 @@ async function renderDashboard() {
   if (error) {
     tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;
   }
-  const diffItems = (data||[]).filter(item => {
-    // Always extract and treat as number
+  const diffItems = (data || []).filter(item => {
     let qtyNum = extractNumber(item.qty);
     let physNum = extractNumber(item.physical);
-
-    // If physical is "blank" (undefined, null, "", "null"), show as needing action
-    let physBlank = (
-      item.physical === null ||
-      item.physical === undefined ||
-      item.physical === "" ||
-      item.physical === "null" ||
-      isNaN(physNum)
-    );
-
-    // If both are valid numbers, and difference != 0, show as needing action
-    let needsAction = physBlank || (
+    // Only show if BOTH are valid numbers AND difference is not zero
+    return (
       qtyNum !== null &&
       physNum !== null &&
       !isNaN(qtyNum) &&
       !isNaN(physNum) &&
       physNum - qtyNum !== 0
     );
-    return needsAction;
   });
 
   if (!diffItems.length) {
-    tbody.innerHTML = '<tr><td colspan="4">All system and physical match!</td></tr>'; return;
+    tbody.innerHTML = '<tr><td colspan="4">All physical = system. No difference!</td></tr>'; return;
   }
 
-  tbody.innerHTML = diffItems.map(item=>{
+  tbody.innerHTML = diffItems.map(item => {
     let qtyDisp = (item.qty===undefined||item.qty===null||item.qty===""||item.qty==="null") ? '-' : item.qty;
     let physDisp = (item.physical===undefined||item.physical===null||item.physical===""||item.physical==="null") ? '-' : item.physical;
     let qtyNum = extractNumber(item.qty);
@@ -497,5 +485,6 @@ function showModal(items) {
   </script>
 </body>
 </html>
+
 
 
