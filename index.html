@@ -204,8 +204,8 @@
         <input id="username" class="namebox" type="text" autocomplete="off" placeholder="Enter once">
       </div>
     </form>
-    <!-- LIVE dashboard showing only items needing action -->
-    <h4 style="margin-top:10px;">Items With System ≠ Physical (Action Needed)</h4>
+    <!-- LIVE dashboard showing only items with nonzero difference -->
+    <h4 style="margin-top:10px;">Articles With Difference ≠ 0 (Action Needed)</h4>
     <table class="inv-table">
       <thead>
         <tr>
@@ -257,53 +257,57 @@
       let match = s.match(/-?\d+(\.\d+)?/);
       return match ? Number(match[0]) : null;
     }
-async function renderDashboard() {
-  const { data, error } = await supabase.from('inventory').select('*').order('id');
-  const tbody = document.getElementById('dashboard-tbody');
-  if (error) {
-    tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;
-  }
-  // Filter: both qty and physical are valid numbers AND their difference ≠ 0
-  const diffItems = (data || []).filter(item => {
-    let qtyNum = extractNumber(item.qty);
-    let physNum = extractNumber(item.physical);
-    if (
-      qtyNum !== null &&
-      physNum !== null &&
-      !isNaN(qtyNum) &&
-      !isNaN(physNum)
-    ) {
-      const diff = physNum - qtyNum;
-      return diff !== 0;
-    }
-    return false;
-  });
 
-  if (!diffItems.length) {
-    tbody.innerHTML = '<tr><td colspan="4">No articles with difference below or above zero!</td></tr>'; return;
-  }
+    // --- DASHBOARD LOGIC ---
+    async function renderDashboard() {
+      const { data, error } = await supabase.from('inventory').select('*').order('id');
+      const tbody = document.getElementById('dashboard-tbody');
+      if (error) {
+        tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;
+      }
+      // Show only records where both qty and physical are valid numbers and difference is NOT zero
+      const diffItems = (data || []).filter(item => {
+        let qtyNum = extractNumber(item.qty);
+        let physNum = extractNumber(item.physical);
+        if (
+          qtyNum !== null &&
+          physNum !== null &&
+          !isNaN(qtyNum) &&
+          !isNaN(physNum)
+        ) {
+          const diff = physNum - qtyNum;
+          return diff !== 0;
+        }
+        return false;
+      });
 
-  tbody.innerHTML = diffItems.map(item => {
-    let qtyDisp = (item.qty===undefined||item.qty===null||item.qty===""||item.qty==="null") ? '-' : item.qty;
-    let physDisp = (item.physical===undefined||item.physical===null||item.physical===""||item.physical==="null") ? '-' : item.physical;
-    let qtyNum = extractNumber(item.qty);
-    let physNum = extractNumber(item.physical);
-    let diffVal = physNum - qtyNum;
-    let diffStr = !isNaN(diffVal) ? diffVal : '-';
-    let diffClass = "";
-    if (!isNaN(diffVal)) {
-      if (diffVal < 0) diffClass = "negative";
-      else if (diffVal > 0) diffClass = "positive";
+      if (!diffItems.length) {
+        tbody.innerHTML = '<tr><td colspan="4">No articles with difference below or above zero!</td></tr>'; return;
+      }
+
+      tbody.innerHTML = diffItems.map(item => {
+        let qtyDisp = (item.qty===undefined||item.qty===null||item.qty===""||item.qty==="null") ? '-' : item.qty;
+        let physDisp = (item.physical===undefined||item.physical===null||item.physical===""||item.physical==="null") ? '-' : item.physical;
+        let qtyNum = extractNumber(item.qty);
+        let physNum = extractNumber(item.physical);
+        let diffVal = physNum - qtyNum;
+        let diffStr = !isNaN(diffVal) ? diffVal : '-';
+        let diffClass = "";
+        if (!isNaN(diffVal)) {
+          if (diffVal < 0) diffClass = "negative";
+          else if (diffVal > 0) diffClass = "positive";
+        }
+        return `<tr>
+          <td>${item.article_name||""}</td>
+          <td><span class="qty-badge">${qtyDisp}</span></td>
+          <td><span class="physical-badge">${physDisp}</span></td>
+          <td><span class="diff-badge ${diffClass}">${diffStr}</span></td>
+        </tr>`;
+      }).join('');
     }
-    return `<tr>
-      <td>${item.article_name||""}</td>
-      <td><span class="qty-badge">${qtyDisp}</span></td>
-      <td><span class="physical-badge">${physDisp}</span></td>
-      <td><span class="diff-badge ${diffClass}">${diffStr}</span></td>
-    </tr>`;
-  }).join('');
-}
+
     function closeModal() { document.getElementById('modal-results').style.display = 'none'; }
+
     function voiceSearch() {
       if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
         alert('Voice input not supported!');
@@ -321,6 +325,7 @@ async function renderDashboard() {
       recog.onerror = e => { alert('Voice error: '+e.error); };
       recog.start();
     }
+
     async function searchInventory() {
       const q = document.getElementById('search').value.trim();
       let query = supabase.from('inventory').select('*');
@@ -330,46 +335,46 @@ async function renderDashboard() {
       currentRows = items || [];
       showModal(currentRows);
     }
-function showModal(items) {
-  const modal = document.getElementById('modal-results');
-  const mlist = document.getElementById('modal-list');
-  if (!items.length) { mlist.innerHTML = '<b>No matches found.</b>'; modal.style.display = 'block'; return; }
-  mlist.innerHTML = items.map((item,i)=>{
-    // Use extractNumber for both
-    let qtyNum = extractNumber(item.qty);
-    let physicalNum = extractNumber(item.physical);
-    let qtyDisplay = (qtyNum === null || item.qty == null || item.qty === "" || item.qty === "null") ? '-' : item.qty;
-    let physicalDisplay = (physicalNum === null || item.physical == null || item.physical === "" || item.physical === "null") ? '-' : item.physical;
-    let diffStr = '-';
-    let diffClass = "";
-    // Always show live difference if both exist
-    if (qtyNum !== null && physicalNum !== null && !isNaN(qtyNum) && !isNaN(physicalNum)) {
-      let diff = physicalNum - qtyNum;
-      diffStr = diff.toString();
-      if (diff<0) diffClass = "negative";
-      else if (diff>0) diffClass = "positive";
-    }
-    return `
-      <div class="modal-row" id="modal-row-${item.id}">
-        <input type="checkbox" class="bulk-select" id="bulk-${item.id}">
-        <div class="modal-row-content">
-          <b style="font-size:1.05em;">${item.article_name}</b><br>
-          <span class="qty-badge">System: ${qtyDisplay}</span>
-          <span class="physical-badge">Physical: ${physicalDisplay}</span>
-          <span class="diff-badge ${diffClass}">Difference: ${diffStr}</span>
-          <div style="margin-top:10px;">
-            <button class="row-btn" onclick="markOK(${item.id}, '${qtyDisplay}', ${i})">OK</button>
-            <label>Or enter:</label>
-            <input class="qty-inp" id="qty-inp-${item.id}" placeholder="Physical qty">
-            <button class="voice-btn" onclick="voiceQty(${item.id})" title="Voice input">🎤</button>
-            <button class="row-btn" onclick="updateQty(${item.id}, ${i})">Update</button>
+
+    function showModal(items) {
+      const modal = document.getElementById('modal-results');
+      const mlist = document.getElementById('modal-list');
+      if (!items.length) { mlist.innerHTML = '<b>No matches found.</b>'; modal.style.display = 'block'; return; }
+      mlist.innerHTML = items.map((item,i)=>{
+        let qtyNum = extractNumber(item.qty);
+        let physicalNum = extractNumber(item.physical);
+        let qtyDisplay = (qtyNum === null || item.qty == null || item.qty === "" || item.qty === "null") ? '-' : item.qty;
+        let physicalDisplay = (physicalNum === null || item.physical == null || item.physical === "" || item.physical === "null") ? '-' : item.physical;
+        let diffStr = '-';
+        let diffClass = "";
+        if (qtyNum !== null && physicalNum !== null && !isNaN(qtyNum) && !isNaN(physicalNum)) {
+          let diff = physicalNum - qtyNum;
+          diffStr = diff.toString();
+          if (diff<0) diffClass = "negative";
+          else if (diff>0) diffClass = "positive";
+        }
+        return `
+          <div class="modal-row" id="modal-row-${item.id}">
+            <input type="checkbox" class="bulk-select" id="bulk-${item.id}">
+            <div class="modal-row-content">
+              <b style="font-size:1.05em;">${item.article_name}</b><br>
+              <span class="qty-badge">System: ${qtyDisplay}</span>
+              <span class="physical-badge">Physical: ${physicalDisplay}</span>
+              <span class="diff-badge ${diffClass}">Difference: ${diffStr}</span>
+              <div style="margin-top:10px;">
+                <button class="row-btn" onclick="markOK(${item.id}, '${qtyDisplay}', ${i})">OK</button>
+                <label>Or enter:</label>
+                <input class="qty-inp" id="qty-inp-${item.id}" placeholder="Physical qty">
+                <button class="voice-btn" onclick="voiceQty(${item.id})" title="Voice input">🎤</button>
+                <button class="row-btn" onclick="updateQty(${item.id}, ${i})">Update</button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-  modal.style.display = 'block';
-}
+        `;
+      }).join('');
+      modal.style.display = 'block';
+    }
+
     async function markOK(id, qtyValue, idx) {
       const name = getName();
       if (!name) { alert('Enter your name first'); return; }
@@ -389,6 +394,7 @@ function showModal(items) {
       markDoneRow(id, `Physical set to ${qtyValue}, Difference: 0`);
       setTimeout(() => { closeModal(); renderDashboard(); }, 700);
     }
+
     async function updateQty(id, idx) {
       const name = getName();
       if (!name) { alert('Enter your name first'); return; }
@@ -414,6 +420,7 @@ function showModal(items) {
       markDoneRow(id, `Physical: ${val}, Difference: ${diff}`);
       setTimeout(() => { closeModal(); renderDashboard(); }, 700);
     }
+
     async function bulkConfirmSelected() {
       const checkedBoxes = Array.from(document.querySelectorAll('.bulk-select:checked'));
       const checkedIds = checkedBoxes.map(cb => cb.id.replace('bulk-', ''));
@@ -440,6 +447,7 @@ function showModal(items) {
       await Promise.all(updates);
       closeModal(); renderDashboard();
     }
+
     function voiceQty(id) {
       if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
         alert('Voice input not supported!');
@@ -456,11 +464,13 @@ function showModal(items) {
       recog.onerror = e => { alert('Voice error: '+e.error); };
       recog.start();
     }
+
     function markDoneRow(id, msg) {
       const row = document.getElementById('modal-row-'+id);
       if (row) row.innerHTML += `<div style="color:#43ad97;font-weight:bold;margin-top:7px;">${msg}</div>`;
       setTimeout(()=>{ if(row) row.style.opacity=0.5; }, 700);
     }
+
     async function exportToCSV() {
       const { data: rows, error } = await supabase.from('inventory').select('*').order('id');
       if (error || !rows || !rows.length) return alert("No data to export!");
@@ -488,7 +498,3 @@ function showModal(items) {
   </script>
 </body>
 </html>
-
-
-
-
