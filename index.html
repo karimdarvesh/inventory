@@ -263,21 +263,24 @@ async function renderDashboard() {
   if (error) {
     tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;
   }
+  // Filter: both qty and physical are valid numbers AND their difference ≠ 0
   const diffItems = (data || []).filter(item => {
     let qtyNum = extractNumber(item.qty);
     let physNum = extractNumber(item.physical);
-    // Only show if BOTH are valid numbers AND difference is not zero
-    return (
+    if (
       qtyNum !== null &&
       physNum !== null &&
       !isNaN(qtyNum) &&
-      !isNaN(physNum) &&
-      physNum - qtyNum !== 0
-    );
+      !isNaN(physNum)
+    ) {
+      const diff = physNum - qtyNum;
+      return diff !== 0;
+    }
+    return false;
   });
 
   if (!diffItems.length) {
-    tbody.innerHTML = '<tr><td colspan="4">All physical = system. No difference!</td></tr>'; return;
+    tbody.innerHTML = '<tr><td colspan="4">No articles with difference below or above zero!</td></tr>'; return;
   }
 
   tbody.innerHTML = diffItems.map(item => {
@@ -285,8 +288,8 @@ async function renderDashboard() {
     let physDisp = (item.physical===undefined||item.physical===null||item.physical===""||item.physical==="null") ? '-' : item.physical;
     let qtyNum = extractNumber(item.qty);
     let physNum = extractNumber(item.physical);
-    let diffVal = (qtyNum !== null && physNum !== null && !isNaN(qtyNum) && !isNaN(physNum)) ? physNum - qtyNum : '-';
-    let diffStr = (diffVal !== null && !isNaN(diffVal)) ? diffVal : '-';
+    let diffVal = physNum - qtyNum;
+    let diffStr = !isNaN(diffVal) ? diffVal : '-';
     let diffClass = "";
     if (!isNaN(diffVal)) {
       if (diffVal < 0) diffClass = "negative";
@@ -485,6 +488,7 @@ function showModal(items) {
   </script>
 </body>
 </html>
+
 
 
 
