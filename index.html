@@ -311,44 +311,46 @@
       currentRows = items || [];
       showModal(currentRows);
     }
-    function showModal(items) {
-      const modal = document.getElementById('modal-results');
-      const mlist = document.getElementById('modal-list');
-      if (!items.length) { mlist.innerHTML = '<b>No matches found.</b>'; modal.style.display = 'block'; return; }
-      mlist.innerHTML = items.map((item,i)=>{
-        let qtyDisplay = (item.qty === undefined || item.qty === null || item.qty === "" || item.qty === "null") ? '-' : item.qty;
-        let physicalDisplay = (item.physical === undefined || item.physical === null || item.physical === "" || item.physical === "null") ? '-' : item.physical;
-        let qtyNum = extractNumber(item.qty);
-        let physicalNum = extractNumber(item.physical);
-        let diffStr = '-';
-        let diffClass = "";
-        if (qtyNum !== null && physicalNum !== null) {
-          let diff = (physicalNum - qtyNum);
-          diffStr = diff.toString();
-          if (diff<0) diffClass = "negative";
-          else if (diff>0) diffClass = "positive";
-        }
-        return `
-        <div class="modal-row" id="modal-row-${item.id}">
-          <input type="checkbox" class="bulk-select" id="bulk-${item.id}">
-          <div class="modal-row-content">
-            <b style="font-size:1.05em;">${item.article_name}</b><br>
-            <span class="qty-badge">System: ${qtyDisplay}</span>
-            <span class="physical-badge">Physical: ${physicalDisplay}</span>
-            <span class="diff-badge ${diffClass}">Difference: ${diffStr}</span>
-            <div style="margin-top:10px;">
-              <button class="row-btn" onclick="markOK(${item.id}, '${qtyDisplay}', ${i})">OK</button>
-              <label>Or enter:</label>
-              <input class="qty-inp" id="qty-inp-${item.id}" placeholder="Physical qty">
-              <button class="voice-btn" onclick="voiceQty(${item.id})" title="Voice input">🎤</button>
-              <button class="row-btn" onclick="updateQty(${item.id}, ${i})">Update</button>
-            </div>
+function showModal(items) {
+  const modal = document.getElementById('modal-results');
+  const mlist = document.getElementById('modal-list');
+  if (!items.length) { mlist.innerHTML = '<b>No matches found.</b>'; modal.style.display = 'block'; return; }
+  mlist.innerHTML = items.map((item,i)=>{
+    // Use extractNumber for both
+    let qtyNum = extractNumber(item.qty);
+    let physicalNum = extractNumber(item.physical);
+    let qtyDisplay = (qtyNum === null || item.qty == null || item.qty === "" || item.qty === "null") ? '-' : item.qty;
+    let physicalDisplay = (physicalNum === null || item.physical == null || item.physical === "" || item.physical === "null") ? '-' : item.physical;
+    let diffStr = '-';
+    let diffClass = "";
+    // Always show live difference if both exist
+    if (qtyNum !== null && physicalNum !== null && !isNaN(qtyNum) && !isNaN(physicalNum)) {
+      let diff = physicalNum - qtyNum;
+      diffStr = diff.toString();
+      if (diff<0) diffClass = "negative";
+      else if (diff>0) diffClass = "positive";
+    }
+    return `
+      <div class="modal-row" id="modal-row-${item.id}">
+        <input type="checkbox" class="bulk-select" id="bulk-${item.id}">
+        <div class="modal-row-content">
+          <b style="font-size:1.05em;">${item.article_name}</b><br>
+          <span class="qty-badge">System: ${qtyDisplay}</span>
+          <span class="physical-badge">Physical: ${physicalDisplay}</span>
+          <span class="diff-badge ${diffClass}">Difference: ${diffStr}</span>
+          <div style="margin-top:10px;">
+            <button class="row-btn" onclick="markOK(${item.id}, '${qtyDisplay}', ${i})">OK</button>
+            <label>Or enter:</label>
+            <input class="qty-inp" id="qty-inp-${item.id}" placeholder="Physical qty">
+            <button class="voice-btn" onclick="voiceQty(${item.id})" title="Voice input">🎤</button>
+            <button class="row-btn" onclick="updateQty(${item.id}, ${i})">Update</button>
           </div>
         </div>
-      `;
-      }).join('');
-      modal.style.display = 'block';
-    }
+      </div>
+    `;
+  }).join('');
+  modal.style.display = 'block';
+}
     async function markOK(id, qtyValue, idx) {
       const name = getName();
       if (!name) { alert('Enter your name first'); return; }
@@ -467,3 +469,4 @@
   </script>
 </body>
 </html>
+
