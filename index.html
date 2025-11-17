@@ -257,33 +257,61 @@
       let match = s.match(/-?\d+(\.\d+)?/);
       return match ? Number(match[0]) : null;
     }
-    async function renderDashboard() {
-      const { data, error } = await supabase.from('inventory').select('*').order('id');
-      const tbody = document.getElementById('dashboard-tbody');
-      if (error) {tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;}
-      const diffItems = (data||[]).filter(item=>{
-        let qty = extractNumber(item.qty), phys = extractNumber(item.physical);
-        return qty!==null && phys!==null && (phys-qty)!==0;
-      });
-      if (!diffItems.length) {
-        tbody.innerHTML = '<tr><td colspan="4">All system and physical match!</td></tr>'; return;
-      }
-      tbody.innerHTML = diffItems.map(item=>{
-        let qtyDisp = (item.qty===undefined||item.qty===null||item.qty==="") ? '-' : item.qty;
-        let physDisp = (item.physical===undefined||item.physical===null||item.physical==="") ? '-' : item.physical;
-        let diffVal = extractNumber(item.physical) - extractNumber(item.qty);
-        let diffStr = (diffVal!==null && !isNaN(diffVal)) ? diffVal : '-';
-        let diffClass = "";
-        if (diffVal<0) diffClass = "negative";
-        else if (diffVal>0) diffClass = "positive";
-        return `<tr>
-            <td>${item.article_name||""}</td>
-            <td><span class="qty-badge">${qtyDisp}</span></td>
-            <td><span class="physical-badge">${physDisp}</span></td>
-            <td><span class="diff-badge ${diffClass}">${diffStr}</span></td>
-          </tr>`;
-      }).join('');
+async function renderDashboard() {
+  const { data, error } = await supabase.from('inventory').select('*').order('id');
+  const tbody = document.getElementById('dashboard-tbody');
+  if (error) {
+    tbody.innerHTML = '<tr><td colspan="4">Failed to load</td></tr>'; return;
+  }
+  const diffItems = (data||[]).filter(item => {
+    // Always extract and treat as number
+    let qtyNum = extractNumber(item.qty);
+    let physNum = extractNumber(item.physical);
+
+    // If physical is "blank" (undefined, null, "", "null"), show as needing action
+    let physBlank = (
+      item.physical === null ||
+      item.physical === undefined ||
+      item.physical === "" ||
+      item.physical === "null" ||
+      isNaN(physNum)
+    );
+
+    // If both are valid numbers, and difference != 0, show as needing action
+    let needsAction = physBlank || (
+      qtyNum !== null &&
+      physNum !== null &&
+      !isNaN(qtyNum) &&
+      !isNaN(physNum) &&
+      physNum - qtyNum !== 0
+    );
+    return needsAction;
+  });
+
+  if (!diffItems.length) {
+    tbody.innerHTML = '<tr><td colspan="4">All system and physical match!</td></tr>'; return;
+  }
+
+  tbody.innerHTML = diffItems.map(item=>{
+    let qtyDisp = (item.qty===undefined||item.qty===null||item.qty===""||item.qty==="null") ? '-' : item.qty;
+    let physDisp = (item.physical===undefined||item.physical===null||item.physical===""||item.physical==="null") ? '-' : item.physical;
+    let qtyNum = extractNumber(item.qty);
+    let physNum = extractNumber(item.physical);
+    let diffVal = (qtyNum !== null && physNum !== null && !isNaN(qtyNum) && !isNaN(physNum)) ? physNum - qtyNum : '-';
+    let diffStr = (diffVal !== null && !isNaN(diffVal)) ? diffVal : '-';
+    let diffClass = "";
+    if (!isNaN(diffVal)) {
+      if (diffVal < 0) diffClass = "negative";
+      else if (diffVal > 0) diffClass = "positive";
     }
+    return `<tr>
+      <td>${item.article_name||""}</td>
+      <td><span class="qty-badge">${qtyDisp}</span></td>
+      <td><span class="physical-badge">${physDisp}</span></td>
+      <td><span class="diff-badge ${diffClass}">${diffStr}</span></td>
+    </tr>`;
+  }).join('');
+}
     function closeModal() { document.getElementById('modal-results').style.display = 'none'; }
     function voiceSearch() {
       if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -469,4 +497,5 @@ function showModal(items) {
   </script>
 </body>
 </html>
+
 
